@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alata&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 90vh;
+            flex-direction: column;
+        }
+
+        .Continue {
+            background-color: #2563eb;
+            color: white;
+            font-size: 40px;
+            padding: 25px 50px;
+            border: none;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <section id="splash" class="screen active">
+        <div class="center-content">
+            <img width="400px" src="./assets/LOGO.jpeg" alt="">
+        </div>
+    </section>
+
+    <button onclick="login()" class="Continue">Continue</button>
+
+
+    <script>
+        function login() {
+            window.location.href = "SelectRole.html";
+        }
+    </script>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

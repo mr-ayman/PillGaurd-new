@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PillGuard | Welcome</title>
+    <!-- Firebase SDKs FIRST -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <!-- THEN your app.js -->
+    <script src="app.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background-color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 40px;
+        }
+        
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .logo-circle {
+            width: 120px;
+            height: 120px;
+            background: #f0f7ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo-circle img {
+            width: 80px;
+        }
+        
+        h1 {
+            color: #1e3a8a;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        p {
+            color: #94a3b8;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .btn-group {
+            width: 100%;
+            max-width: 400px;
+            gap: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 16px;
+            text-align: center;
+            text-decoration: none;
+            transition: 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-login {
+            background-color: #2563eb;
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+        }
+        
+        .btn-register {
+            background-color: white;
+            color: #2563eb;
+            border: 2px solid #2563eb;
+        }
+        
+        .btn:active {
+            transform: scale(0.97);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="content">
+        <div class="logo-circle">
+            <img src="assets/LOGO.jpeg" alt="Logo">
+        </div>
+        <h1>PillGuard</h1>
+        <p>Smart Medicine for Independent Living</p>
+    </div>
+
+    <div class="btn-group">
+        <a href="loginsignup.html" onclick="setRole('Caretaker')" class=" btn btn-login "><span>🤍</span> AS a
+            CareTaker</a>
+        <a href="loginsignup.html" onclick=" setRole('Pharmacy')" class="btn btn-register "><span>🏠</span> As a
+            Pharmacy
+        </a>
+    </div>
+</body>
+
+</html>

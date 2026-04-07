@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <!-- Firebase SDKs FIRST -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+
+    <!-- THEN your app.js -->
+    <script src="app.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            padding: 30px;
+            background: #fff;
+            min-height: 100vh;
+        }
+        
+        .back-btn {
+            font-size: 35px;
+            color: #cbd5e1;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 30px;
+            width: fit-content;
+        }
+        
+        h2 {
+            text-align: center;
+            font-size: 24px;
+            color: #1e293b;
+            margin-bottom: 40px;
+        }
+        /* Step 1: Role Selection */
+        
+        .role-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .role-btn {
+            background: #2563eb;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        
+        .role-btn span:first-child {
+            font-size: 24px;
+        }
+        /* Step 2: Form */
+        
+        .hidden {
+            display: none;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .auth-input {
+            width: 100%;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .auth-input:focus {
+            border-color: #2563eb;
+            background: #fff;
+        }
+        
+        .forgot {
+            text-align: right;
+            font-size: 12px;
+            color: #3b82f6;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        
+        .submit-btn {
+            background: #2563eb;
+            color: white;
+            padding: 18px;
+            border: none;
+            border-radius: 16px;
+            font-weight: 700;
+            margin-top: 10px;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+        }
+        
+        .footer-link {
+            text-align: center;
+            margin-top: 40px;
+            color: #64748b;
+            font-size: 14px;
+        }
+        
+        .footer-link a {
+            color: #2563eb;
+            font-weight: 700;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="auth-step">
+        <h2>Sign In</h2>
+        <div class="form-group">
+            <input type="email" id="email" class="auth-input" placeholder="Enter your email">
+            <input type="password" id="pass" class="auth-input" placeholder="Enter your password">
+            <input type="text" id="code" class="auth-input" placeholder="Enter your box code">
+            <a href="#" class="forgot">Forgot password?</a>
+            <button class="submit-btn" onclick="handleLogin()">Sign In</button>
+        </div>
+        <p class="footer-link">Don't have an account? <a href="signup.html">Sign up</a></p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+</body>
+
+</html>
