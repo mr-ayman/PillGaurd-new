@@ -1,14 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Caretaker Dashboard</title>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .big {
+            font-size: 30px;
+            font-weight: bold;
+        }
+        
+        input {
+            padding: 10px;
+            margin: 5px;
+            width: 80px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+    </style>
 </head>
 
 <body>
 
+    <h1>Caretaker Dashboard</h1>
+
+    <!-- Pill Level -->
+    <div class="card">
+        <h2>Pill Level</h2>
+        <div id="pillLevel" class="big">--</div>
+    </div>
+
+    <!-- Box Status -->
+    <div class="card">
+        <h2>Box Status</h2>
+        <div id="boxStatus" class="big">--</div>
+    </div>
+
+    <!-- Alarm Section -->
+    <div class="card">
+        <h2>Alarm System</h2>
+
+        <div id="alarmList"></div>
+
+        <br>
+
+        <input type="number" id="alarmHour" placeholder="HH" min="0" max="23">
+        <input type="number" id="alarmMinute" placeholder="MM" min="0" max="59">
+
+        <button onclick="createAlarm()">Add Alarm</button>
+    </div>
+
+    <script src="app.js"></script>
+
+    <script>
+        const code = localStorage.getItem("pillguard_code");
+
+        if (!code) {
+            alert("No device code found");
+        }
+
+        firebase.database().ref("device/" + code).on("value", function(snapshot) {
+            const data = snapshot.val();
+            if (!data) return;
+
+            document.getElementById("pillLevel").innerText =
+                (data.pillLevel || 0) + "%";
+
+            document.getElementById("boxStatus").innerText =
+                data.boxOpen ? "OPEN" : "CLOSED";
+        });
+
+        function createAlarm() {
+            const hour = parseInt(document.getElementById("alarmHour").value);
+            const minute = parseInt(document.getElementById("alarmMinute").value);
+
+            if (isNaN(hour) || isNaN(minute)) {
+                alert("Enter valid time");
+                return;
+            }
+
+            const id = "alarm_" + Date.now();
+
+            firebase.database().ref("device/" + code + "/alarms/" + id).set({
+                hour: hour,
+                minute: minute
+            });
+
+            alert("Alarm added ✅");
+        }
+
+        function deleteAlarm(id) {
+            firebase.database()
+                .ref("device/" + code + "/alarms/" + id)
+                .remove()
+                .then(() => alert("Deleted ✅"));
+        }
+
+        firebase.database()
+            .ref("device/" + code + "/alarms")
+            .on("value", function(snapshot) {
+
+                const alarms = snapshot.val() || {};
+                const list = document.getElementById("alarmList");
+                list.innerHTML = "";
+
+                for (let id in alarms) {
+                    const a = alarms[id];
+
+                    const div = document.createElement("div");
+                    div.innerHTML = `
+                    ⏰ ${String(a.hour).padStart(2,'0')}:${String(a.minute).padStart(2,'0')}
+                    <button onclick="deleteAlarm('${id}')">Delete</button>
+                `;
+
+                    list.appendChild(div);
+                }
+            });
+    </script>
 </body>
 
 </html>

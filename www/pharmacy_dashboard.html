@@ -1,13 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Pharmacy Dashboard</title>
+
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #fff;
+        }
+        
+        .card {
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        
+        .big {
+            font-size: 40px;
+            color: green;
+        }
+    </style>
 </head>
 
 <body>
+
+    <h1>Pharmacy Dashboard</h1>
+
+    <div class="card">
+        <h2>Pill Level</h2>
+        <div id="pillLevel" class="big">--</div>
+    </div>
+
+    <script src="app.js"></script>
+
+    <script>
+        const code = localStorage.getItem("pillguard_code");
+
+        console.log("Device Code:", code);
+
+        firebase.database().ref("device/" + code).on("value", function(snapshot) {
+
+            const data = snapshot.val();
+
+            console.log("DATA:", data);
+
+            if (!data) return;
+
+            document.getElementById("pillLevel").innerText =
+                (data.pillLevel || 0) + "%";
+        });
+    </script>
 
 </body>
 

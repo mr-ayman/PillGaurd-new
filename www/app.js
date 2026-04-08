@@ -8,121 +8,104 @@ const firebaseConfig = {
     storageBucket: "pillgaurd.firebasestorage.app",
     messagingSenderId: "359502691060",
     appId: "1:359502691060:web:a8b1ceae0524c0d5193ca1",
-    measurementId: "G-GTL403NW6F"
+    databaseURL: "https://pillgaurd-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-// ================= INITIALIZE FIREBASE =================
+// ================= INITIALIZE =================
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// safer references
+// ✅ SERVICES
 const auth = firebase.auth();
-const db = firebase.firestore();
+const firestoreDB = firebase.firestore();
 
-console.log("Connected Project:", firebase.app().options.projectId);
+console.log("✅ Firebase Connected");
 
-// ================= ROLE MANAGEMENT =================
+// ================= ROLE =================
 function setRole(role) {
     localStorage.setItem("pillguard_role", role);
-    console.log("Role Selected:", role);
 }
 
 // ================= SIGNUP =================
-function handleSignup() {
+async function handleSignup() {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("pass").value.trim();
     const code = document.getElementById("code").value.trim();
     const role = localStorage.getItem("pillguard_role");
 
-    if (!role) {
-        alert("Please select a role first.");
+    if (!role || !name || !email || !password) {
+        alert("Fill all fields");
         return;
     }
 
-    if (!name || !email || !password) {
-        alert("Please fill all required fields.");
-        return;
-    }
+    try {
+        const userCred =
+            await auth.createUserWithEmailAndPassword(email, password);
 
-    auth.createUserWithEmailAndPassword(email, password)
-        .then(async(userCredential) => {
-            const user = userCredential.user;
-
-            await db.collection("users").doc(user.uid).set({
-                name,
-                email,
-                role,
-                code: code || "",
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            alert("Signup successful ✅");
-            window.location.href = "login.html";
-        })
-        .catch((error) => {
-            console.error("Signup Error:", error);
-            alert(error.message);
+        await firestoreDB.collection("users").doc(userCred.user.uid).set({
+            name,
+            email,
+            role,
+            code
         });
+
+        alert("Signup Success ✅");
+        window.location.href = "login.html";
+
+    } catch (err) {
+        alert(err.message);
+    }
 }
 
 // ================= LOGIN =================
 async function handleLogin() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("pass").value.trim();
-    const selectedRole = localStorage.getItem("pillguard_role");
+    const role = localStorage.getItem("pillguard_role");
 
-    if (!selectedRole) {
-        alert("Please select role first.");
-        window.location.href = "SelectRole.html";
+    if (!role) {
+        alert("Select role first");
         return;
     }
 
     try {
-        const userCredential = await auth.signInWithEmailAndPassword(email, password);
-        const user = userCredential.user;
+        const userCred =
+            await auth.signInWithEmailAndPassword(email, password);
 
-        const doc = await db.collection("users").doc(user.uid).get();
-
-        if (!doc.exists) {
-            alert("User data not found.");
-            await auth.signOut();
-            return;
-        }
+        const doc =
+            await firestoreDB.collection("users").doc(userCred.user.uid).get();
 
         const data = doc.data();
 
-        if (data.role !== selectedRole) {
-            alert(`Access Denied! Your role is ${data.role}`);
-            await auth.signOut();
+        if (!data.code) {
+            alert("No device linked");
             return;
         }
 
-        alert(`Welcome ${data.name} ✅`);
+        localStorage.setItem("pillguard_code", data.code);
 
-        if (data.role === "Caretaker") {
+        if (data.role !== role) {
+            alert("Wrong role");
+            return;
+        }
+
+        if (role === "Caretaker") {
             window.location.href = "caretaker_dashboard.html";
-        } else if (data.role === "Pharmacy") {
+        } else {
             window.location.href = "pharmacy_dashboard.html";
         }
 
-    } catch (error) {
-        console.error("Login Error:", error);
-
-        if (error.code === "auth/invalid-login-credentials") {
-            alert("Wrong email or password.");
-        } else {
-            alert(error.message);
-        }
+    } catch (err) {
+        alert(err.message);
     }
 }
 
 // ================= LOGOUT =================
 function logout() {
     auth.signOut().then(() => {
-        localStorage.removeItem("pillguard_role");
-        alert("Logged out successfully");
+        localStorage.clear();
         window.location.href = "index.html";
     });
 }

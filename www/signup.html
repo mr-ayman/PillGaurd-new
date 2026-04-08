@@ -5,13 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signup</title>
-    <!-- Firebase SDKs FIRST -->
+
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
-
-    <!-- THEN your app.js -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <!-- Your app.js -->
     <script src="app.js"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -26,49 +28,11 @@
             min-height: 100vh;
         }
         
-        .back-btn {
-            font-size: 35px;
-            color: #cbd5e1;
-            text-decoration: none;
-            display: block;
-            margin-bottom: 30px;
-            width: fit-content;
-        }
-        
         h2 {
             text-align: center;
             font-size: 24px;
             color: #1e293b;
             margin-bottom: 40px;
-        }
-        
-        .role-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .role-btn {
-            background: #2563eb;
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            border: none;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-        }
-        
-        .role-btn span:first-child {
-            font-size: 24px;
-        }
-        
-        .hidden {
-            display: none;
         }
         
         .form-group {
@@ -85,11 +49,6 @@
             border-radius: 12px;
             font-size: 14px;
             outline: none;
-        }
-        
-        .auth-input:focus {
-            border-color: #2563eb;
-            background: #fff;
         }
         
         .submit-btn {
@@ -122,19 +81,22 @@
 
     <div id="auth-step">
         <h2>Register</h2>
+
         <div class="form-group">
             <input type="text" id="name" class="auth-input" placeholder="Enter your name">
             <input type="email" id="email" class="auth-input" placeholder="Enter your email">
             <input type="password" id="pass" class="auth-input" placeholder="Enter your password">
             <input type="text" id="code" class="auth-input" placeholder="Enter your box code">
+
             <button class="submit-btn" onclick="handleSignup()">Sign Up</button>
         </div>
-        <p class="footer-link">Don't have an account? <a href="signup.html">Sign up</a></p>
+
+        <p class="footer-link">
+            Already have an account?
+            <a href="login.html">Login</a>
+        </p>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
 </body>
 
 </html>
