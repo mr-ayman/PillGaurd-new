@@ -1,152 +1,582 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Caretaker Dashboard</title>
-
-    <!-- Firebase -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PillGuard | Caretaker</title>
+    <!-- Firebase SDKs FIRST -->
+    <!-- Firebase FIRST -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+
+    <!-- THEN app.js -->
+    <script src="app.js"></script>
 
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
         body {
-            font-family: Arial;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+        }
+        
+        .header p {
+            font-size: 12px;
+            opacity: .75;
+            margin-top: 2px;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .container {
             padding: 20px;
-            background: #f5f5f5;
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .card {
             background: white;
+            border-radius: 16px;
             padding: 20px;
-            margin: 10px 0;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
         
-        .big {
-            font-size: 30px;
-            font-weight: bold;
+        .card h3 {
+            font-size: 15px;
+            color: #1e293b;
+            margin-bottom: 14px;
+        }
+        /* PILL LEVEL */
+        
+        .level-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
         }
         
-        input {
+        .level-num {
+            font-size: 32px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        
+        .level-label {
+            font-size: 13px;
+            color: #64748b;
+        }
+        
+        .bar-track {
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 99px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width .5s;
+            background: #22c55e;
+        }
+        
+        .bar-fill.warn {
+            background: #f59e0b;
+        }
+        
+        .bar-fill.danger {
+            background: #ef4444;
+        }
+        /* ALERT — display controlled only via JS */
+        
+        .pill-alert {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 14px 16px;
+            gap: 10px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        
+        .pill-alert .icon {
+            font-size: 22px;
+        }
+        
+        .pill-alert .msg {
+            font-size: 14px;
+            color: #dc2626;
+            font-weight: 700;
+        }
+        /* BADGES */
+        
+        .badges {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .badge {
+            flex: 1;
+            text-align: center;
             padding: 10px;
-            margin: 5px;
-            width: 80px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
         }
         
-        button {
-            padding: 10px 15px;
-            background: #4CAF50;
+        .badge.open {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+        
+        .badge.closed {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .badge.blue {
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        /* LED SLOTS */
+        
+        .led-grid {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .led-slot {
+            flex: 1;
+            min-width: 100px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .2s;
+            user-select: none;
+        }
+        
+        .led-slot.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        
+        .led-slot .led-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+        
+        .led-slot .led-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .led-slot .led-time {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+        
+        .led-slot .led-status {
+            margin-top: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+        }
+        
+        .led-slot.active .led-status {
+            color: #2563eb;
+        }
+        /* ALARMS */
+        
+        .alarm-add {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .alarm-add select,
+        .alarm-add input {
+            padding: 10px 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 13px;
+            outline: none;
+        }
+        
+        .alarm-add select:focus,
+        .alarm-add input:focus {
+            border-color: #2563eb;
+        }
+        
+        .alarm-label-input {
+            flex: 1;
+            min-width: 80px;
+        }
+        
+        .add-alarm-btn {
+            background: #2563eb;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .alarm-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .alarm-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+        
+        .alarm-time {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        
+        .alarm-lbl {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        
+        .del-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
         }
         
-        button:hover {
-            opacity: 0.9;
+        .no-alarms {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            padding: 10px;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Caretaker Dashboard</h1>
-
-    <!-- Pill Level -->
-    <div class="card">
-        <h2>Pill Level</h2>
-        <div id="pillLevel" class="big">--</div>
+    <div class="header">
+        <div>
+            <h1>🏠 Caretaker Dashboard</h1>
+            <p id="ct-name">Loading…</p>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
 
-    <!-- Box Status -->
-    <div class="card">
-        <h2>Box Status</h2>
-        <div id="boxStatus" class="big">--</div>
+    <div class="container">
+
+        <!-- LOW PILL ALERT -->
+        <div class="pill-alert" id="pill-alert">
+            <span class="icon">⚠️</span>
+            <span class="msg" id="alert-msg">Pill level is low! Please refill soon.</span>
+        </div>
+
+        <!-- PILL LEVEL CARD -->
+        <div class="card">
+            <h3>💊 Pill Level</h3>
+            <div class="level-row">
+                <div>
+                    <div class="level-num" id="pill-pct">—%</div>
+                    <div class="level-label">Current fill level</div>
+                </div>
+                <div style="text-align:right">
+                    <div class="level-num" style="font-size:18px" id="pill-weight">— g</div>
+                    <div class="level-label">Weight</div>
+                </div>
+            </div>
+            <div class="bar-track">
+                <div class="bar-fill" id="bar-fill" style="width:0%"></div>
+            </div>
+            <div class="badges">
+                <div class="badge closed" id="lid-badge">🔒 Closed</div>
+                <div class="badge blue" id="code-badge">📦 —</div>
+            </div>
+        </div>
+
+        <!-- LED SLOTS CARD -->
+        <div class="card">
+            <h3>💡 LED Time Slots</h3>
+            <p style="font-size:12px;color:#94a3b8;margin-bottom:14px;">
+                Tap a slot to turn that LED ON or OFF on the physical device. Reflects on ESP32 instantly.
+            </p>
+            <div class="led-grid">
+                <div class="led-slot" id="slot-morning" onclick="toggleLed('morning')">
+                    <div class="led-icon">🌅</div>
+                    <div class="led-name">Morning</div>
+                    <div class="led-time">6 AM – 12 PM</div>
+                    <div class="led-status" id="led-morning-status">OFF</div>
+                </div>
+                <div class="led-slot" id="slot-afternoon" onclick="toggleLed('afternoon')">
+                    <div class="led-icon">☀️</div>
+                    <div class="led-name">Afternoon</div>
+                    <div class="led-time">12 PM – 6 PM</div>
+                    <div class="led-status" id="led-afternoon-status">OFF</div>
+                </div>
+                <div class="led-slot" id="slot-evening" onclick="toggleLed('evening')">
+                    <div class="led-icon">🌙</div>
+                    <div class="led-name">Evening</div>
+                    <div class="led-time">6 PM – 10 PM</div>
+                    <div class="led-status" id="led-evening-status">OFF</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ALARMS CARD -->
+        <div class="card">
+            <h3>⏰ Medicine Alarms</h3>
+            <div class="alarm-add">
+                <select id="alarm-hour">
+          <option value="">HH</option>
+          <script>for(let h=0;h<24;h++) document.write(`<option value="${h}">${String(h).padStart(2,'0')}</option>`);</script>
+        </select>
+                <select id="alarm-min">
+          <option value="">MM</option>
+          <script>for(let m=0;m<60;m+=5) document.write(`<option value="${m}">${String(m).padStart(2,'0')}</option>`);</script>
+        </select>
+                <input class="alarm-label-input" id="alarm-label" placeholder="Label e.g. Breakfast" type="text">
+                <button class="add-alarm-btn" onclick="handleAddAlarm()">Add</button>
+            </div>
+            <div class="alarm-list" id="alarm-list">
+                <div class="no-alarms">No alarms yet.</div>
+            </div>
+        </div>
+
     </div>
-
-    <!-- Alarm Section -->
-    <div class="card">
-        <h2>Alarm System</h2>
-
-        <div id="alarmList"></div>
-
-        <br>
-
-        <input type="number" id="alarmHour" placeholder="HH" min="0" max="23">
-        <input type="number" id="alarmMinute" placeholder="MM" min="0" max="59">
-
-        <button onclick="createAlarm()">Add Alarm</button>
-    </div>
-
-    <script src="app.js"></script>
-
     <script>
+        const uid = localStorage.getItem("pillguard_uid");
         const code = localStorage.getItem("pillguard_code");
 
-        if (!code) {
-            alert("No device code found");
+        // redirect if not logged in
+        if (!uid || !code) {
+            window.location.href = "index.html";
         }
 
-        firebase.database().ref("device/" + code).on("value", function(snapshot) {
-            const data = snapshot.val();
-            if (!data) return;
+        const db = firebase.firestore(); // keep this
+        // ❌ DON'T create rtdb again
 
-            document.getElementById("pillLevel").innerText =
-                (data.pillLevel || 0) + "%";
+        const ledState = {
+            morning: false,
+            afternoon: false,
+            evening: false
+        };
 
-            document.getElementById("boxStatus").innerText =
-                data.boxOpen ? "OPEN" : "CLOSED";
-        });
+        // ================= LOAD CARETAKER NAME =================
+        db.collection("users").doc(uid).get()
+            .then(function(snap) {
+                const d = snap.data();
 
-        function createAlarm() {
-            const hour = parseInt(document.getElementById("alarmHour").value);
-            const minute = parseInt(document.getElementById("alarmMinute").value);
+                if (d && d.name) {
+                    document.getElementById("ct-name").textContent = "Hello, " + d.name;
+                } else {
+                    document.getElementById("ct-name").textContent = "Caretaker";
+                }
+            })
+            .catch(function(error) {
+                console.log("Name load error:", error);
+                document.getElementById("ct-name").textContent = "Caretaker";
+            });
 
-            if (isNaN(hour) || isNaN(minute)) {
-                alert("Enter valid time");
+        // show device code
+        document.getElementById("code-badge").textContent = "📦 " + code;
+
+        // ================= LIVE DEVICE DATA =================
+        rtdb.ref("/device/" + code).on("value", function(snap) {
+            const d = snap.val();
+
+            console.log("Listening path:", "/device/" + code);
+            console.log("Firebase data:", d);
+
+            if (!d) {
+                document.getElementById("pill-pct").textContent = "—%";
+                document.getElementById("pill-weight").textContent = "— g";
+                document.getElementById("bar-fill").style.width = "0%";
                 return;
             }
 
-            const id = "alarm_" + Date.now();
+            updatePillUI(d);
+            updateLedUI(d.leds || {});
+            updateAlarmUI(d.alarms || {});
+        });
 
-            firebase.database().ref("device/" + code + "/alarms/" + id).set({
-                hour: hour,
-                minute: minute
-            });
+        // ================= PILL UI =================
+        function updatePillUI(d) {
+            const level = typeof d.pillLevel === "number" ? d.pillLevel : 0;
 
-            alert("Alarm added ✅");
+            const weight =
+                d.weight !== undefined &&
+                d.weight !== null &&
+                !isNaN(Number(d.weight)) ?
+                Number(d.weight).toFixed(1) :
+                "—";
+
+            const open = !!d.boxOpen;
+
+            document.getElementById("pill-pct").textContent = level + "%";
+            document.getElementById("pill-weight").textContent = weight + " g";
+
+            const bar = document.getElementById("bar-fill");
+            bar.style.width = level + "%";
+
+            if (level <= 20) {
+                bar.className = "bar-fill danger";
+            } else if (level <= 40) {
+                bar.className = "bar-fill warn";
+            } else {
+                bar.className = "bar-fill";
+            }
+
+            const lid = document.getElementById("lid-badge");
+            lid.textContent = open ? "🔓 Box Open" : "🔒 Box Closed";
+            lid.className = "badge " + (open ? "open" : "closed");
+
+            const alertEl = document.getElementById("pill-alert");
+
+            if (level <= 20) {
+                alertEl.style.display = "flex";
+                document.getElementById("alert-msg").textContent =
+                    "⚠️ Pill level low: " + level + "%";
+            } else {
+                alertEl.style.display = "none";
+            }
         }
 
-        function deleteAlarm(id) {
-            firebase.database()
-                .ref("device/" + code + "/alarms/" + id)
-                .remove()
-                .then(() => alert("Deleted ✅"));
+        // ================= LED =================
+        function toggleLed(slot) {
+            ledState[slot] = !ledState[slot];
+            setLedSlot(slot, ledState[slot]);
         }
 
-        firebase.database()
-            .ref("device/" + code + "/alarms")
-            .on("value", function(snapshot) {
+        function updateLedUI(leds) {
+            const slots = ["morning", "afternoon", "evening"];
 
-                const alarms = snapshot.val() || {};
-                const list = document.getElementById("alarmList");
-                list.innerHTML = "";
+            for (let i = 0; i < slots.length; i++) {
+                const slot = slots[i];
 
-                for (let id in alarms) {
-                    const a = alarms[id];
+                ledState[slot] = !!leds[slot];
 
-                    const div = document.createElement("div");
-                    div.innerHTML = `
-                    ⏰ ${String(a.hour).padStart(2,'0')}:${String(a.minute).padStart(2,'0')}
-                    <button onclick="deleteAlarm('${id}')">Delete</button>
-                `;
+                document.getElementById("slot-" + slot)
+                    .classList.toggle("active", ledState[slot]);
 
-                    list.appendChild(div);
-                }
-            });
+                document.getElementById("led-" + slot + "-status")
+                    .textContent = ledState[slot] ? "ON 🟢" : "OFF";
+            }
+        }
+
+        // ================= ALARMS =================
+        function handleAddAlarm() {
+            const h = document.getElementById("alarm-hour").value;
+            const m = document.getElementById("alarm-min").value;
+            const labelInput = document.getElementById("alarm-label").value.trim();
+
+            if (h === "" || m === "") {
+                alert("Select hour and minute");
+                return;
+            }
+
+            const key = (labelInput || ("alarm_" + h + "_" + m))
+                .replace(/\s+/g, "_")
+                .toLowerCase();
+
+            setAlarm(h, m, key);
+            document.getElementById("alarm-label").value = "";
+        }
+
+        function handleDeleteAlarm(key) {
+            deleteAlarm(key);
+        }
+
+        function updateAlarmUI(alarms) {
+            const list = document.getElementById("alarm-list");
+            const keys = Object.keys(alarms);
+
+            if (keys.length === 0) {
+                list.innerHTML = '<div class="no-alarms">No alarms set yet.</div>';
+                return;
+            }
+
+            let html = "";
+
+            for (let i = 0; i < keys.length; i++) {
+                const key = keys[i];
+                const a = alarms[key];
+
+                const hh = String(a.hour).padStart(2, "0");
+                const mm = String(a.minute).padStart(2, "0");
+
+                html +=
+                    '<div class="alarm-item">' +
+                    '<div>' +
+                    '<div class="alarm-time">' + hh + ':' + mm + '</div>' +
+                    '<div class="alarm-lbl">' + (a.label || key) + '</div>' +
+                    '</div>' +
+                    '<button class="del-btn" onclick="handleDeleteAlarm(\'' + key + '\')">' +
+                    'Delete' +
+                    '</button>' +
+                    '</div>';
+            }
+
+            list.innerHTML = html;
+        }
     </script>
 </body>
 

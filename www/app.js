@@ -11,96 +11,134 @@ const firebaseConfig = {
     databaseURL: "https://pillgaurd-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-// ================= INITIALIZE =================
-if (!firebase.apps.length) {
+// ================= INIT SAFE =================
+if (!firebase.apps || !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// ✅ SERVICES
 const auth = firebase.auth();
 const firestoreDB = firebase.firestore();
+const rtdb = firebase.database();
 
 console.log("✅ Firebase Connected");
+
+
+// ================= HELPER (IMPORTANT FIX) =================
+function getValue(id) {
+    const el = document.getElementById(id);
+    return el && el.value ? el.value.trim() : "";
+}
+
 
 // ================= ROLE =================
 function setRole(role) {
     localStorage.setItem("pillguard_role", role);
 }
 
+
 // ================= SIGNUP =================
 async function handleSignup() {
-    const name = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("pass").value.trim();
-    const code = document.getElementById("code").value.trim();
+
+    const name = getValue("name");
+    const email = getValue("email");
+    const password = getValue("pass");
+
+    const addressEl = document.getElementById("address");
+    const codeEl = document.getElementById("code");
+
     const role = localStorage.getItem("pillguard_role");
 
-    if (!role || !name || !email || !password) {
-        alert("Fill all fields");
-        return;
+    if (!role) return alert("No role selected. Go back and choose a role.");
+    if (!name || !email || !password) return alert("Fill all required fields");
+
+    let address = "";
+    let code = "";
+
+    if (role === "Caretaker") {
+        address = addressEl && addressEl.value ? addressEl.value.trim() : "";
+        code = codeEl && codeEl.value ? codeEl.value.trim().toUpperCase() : "";
+
+        if (!address) return alert("Please enter your home address");
+        if (!code) return alert("Please enter your device box code");
     }
 
     try {
-        const userCred =
-            await auth.createUserWithEmailAndPassword(email, password);
+        const userCred = await auth.createUserWithEmailAndPassword(email, password);
 
-        await firestoreDB.collection("users").doc(userCred.user.uid).set({
-            name,
-            email,
-            role,
-            code
-        });
+        const userData = {
+            name: name,
+            email: email,
+            role: role
+        };
 
-        alert("Signup Success ✅");
+        if (role === "Caretaker") {
+            userData.address = address;
+            userData.code = code;
+        }
+
+        if (role === "Pharmacy") {
+            userData.devices = [];
+        }
+
+        await firestoreDB.collection("users")
+            .doc(userCred.user.uid)
+            .set(userData);
+
+        alert("Account created ✅ Please log in.");
         window.location.href = "login.html";
 
     } catch (err) {
+        console.error(err);
         alert(err.message);
     }
 }
 
+
 // ================= LOGIN =================
 async function handleLogin() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("pass").value.trim();
+
+    const email = getValue("email");
+    const password = getValue("pass");
     const role = localStorage.getItem("pillguard_role");
 
-    if (!role) {
-        alert("Select role first");
-        return;
-    }
+    if (!role) return alert("Select a role first");
+    if (!email || !password) return alert("Enter email and password");
+
+    const spinner = document.getElementById("spinner");
+    if (spinner) spinner.style.display = "block";
 
     try {
-        const userCred =
-            await auth.signInWithEmailAndPassword(email, password);
+        const userCred = await auth.signInWithEmailAndPassword(email, password);
 
-        const doc =
-            await firestoreDB.collection("users").doc(userCred.user.uid).get();
+        const docSnap = await firestoreDB
+            .collection("users")
+            .doc(userCred.user.uid)
+            .get();
 
-        const data = doc.data();
+        const data = docSnap.data();
 
-        if (!data.code) {
-            alert("No device linked");
-            return;
-        }
+        if (!data) return alert("User record not found");
+        if (data.role !== role) return alert("Wrong role selected");
 
-        localStorage.setItem("pillguard_code", data.code);
-
-        if (data.role !== role) {
-            alert("Wrong role");
-            return;
-        }
+        localStorage.setItem("pillguard_uid", userCred.user.uid);
+        localStorage.setItem("pillguard_name", data.name || "");
 
         if (role === "Caretaker") {
+            if (!data.code) return alert("No device code assigned");
+            localStorage.setItem("pillguard_code", data.code);
             window.location.href = "caretaker_dashboard.html";
         } else {
             window.location.href = "pharmacy_dashboard.html";
         }
 
     } catch (err) {
+        console.error(err);
         alert(err.message);
+    } finally {
+        if (spinner) spinner.style.display = "none";
     }
 }
+
 
 // ================= LOGOUT =================
 function logout() {
@@ -108,4 +146,57 @@ function logout() {
         localStorage.clear();
         window.location.href = "index.html";
     });
+}
+
+
+// ================= PHARMACY: ADD DEVICE =================
+async function addDevice(code) {
+    const uid = localStorage.getItem("pillguard_uid");
+    if (!uid || !code) return;
+
+    await firestoreDB.collection("users").doc(uid).update({
+        devices: firebase.firestore.FieldValue.arrayUnion(code.trim().toUpperCase())
+    });
+}
+
+
+// ================= PHARMACY: REMOVE DEVICE =================
+async function removeDevice(code) {
+    const uid = localStorage.getItem("pillguard_uid");
+    if (!uid || !code) return;
+
+    await firestoreDB.collection("users").doc(uid).update({
+        devices: firebase.firestore.FieldValue.arrayRemove(code.trim().toUpperCase())
+    });
+}
+
+
+// ================= CARETAKER: SET ALARM =================
+async function setAlarm(hour, minute, label) {
+    const code = localStorage.getItem("pillguard_code");
+    if (!code) return;
+
+    await rtdb.ref(`/device/${code}/alarms/${label}`).set({
+        hour: Number(hour),
+        minute: Number(minute),
+        label: label
+    });
+}
+
+
+// ================= CARETAKER: DELETE ALARM =================
+async function deleteAlarm(label) {
+    const code = localStorage.getItem("pillguard_code");
+    if (!code) return;
+
+    await rtdb.ref(`/device/${code}/alarms/${label}`).remove();
+}
+
+
+// ================= CARETAKER: SET LED SLOT =================
+async function setLedSlot(slot, enabled) {
+    const code = localStorage.getItem("pillguard_code");
+    if (!code) return;
+
+    await rtdb.ref(`/device/${code}/leds/${slot}`).set(!!enabled);
 }

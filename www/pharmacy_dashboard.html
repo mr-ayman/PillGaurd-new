@@ -1,61 +1,523 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Pharmacy Dashboard</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PillGuard | Pharmacy</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="app.js"></script>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
         body {
-            font-family: Arial;
-            padding: 20px;
-            background: #fff;
+            background: #f1f5f9;
+            min-height: 100vh;
+        }
+        /* ── HEADER ── */
+        
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
-        .card {
-            padding: 20px;
-            border: 1px solid #ddd;
-            margin-top: 10px;
+        .header h1 {
+            font-size: 20px;
         }
         
-        .big {
-            font-size: 40px;
-            color: green;
+        .header p {
+            font-size: 12px;
+            opacity: .75;
+            margin-top: 2px;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        /* ── BODY ── */
+        
+        .container {
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        /* ── ADD DEVICE ── */
+        
+        .add-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        
+        .add-card h3 {
+            font-size: 15px;
+            color: #1e293b;
+            margin-bottom: 14px;
+        }
+        
+        .add-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .code-input {
+            flex: 1;
+            padding: 14px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            text-transform: uppercase;
+        }
+        
+        .code-input:focus {
+            border-color: #2563eb;
+        }
+        
+        .add-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        /* ── DEVICE CARDS ── */
+        
+        .device-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            position: relative;
+        }
+        
+        .device-card .code-tag {
+            display: inline-block;
+            background: #eff6ff;
+            color: #2563eb;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+        }
+        
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .info-row .label {
+            font-size: 12px;
+            color: #94a3b8;
+            width: 70px;
+        }
+        
+        .info-row .value {
+            font-size: 14px;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        /* ── PILL LEVEL BAR ── */
+        
+        .pill-section {
+            margin-top: 14px;
+        }
+        
+        .pill-section .bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 6px;
+        }
+        
+        .bar-track {
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width .4s;
+            background: #22c55e;
+        }
+        
+        .bar-fill.warn {
+            background: #f59e0b;
+        }
+        
+        .bar-fill.danger {
+            background: #ef4444;
+        }
+        /* ── ALERT BANNER ── */
+        
+        .alert-pill {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-pill .icon {
+            font-size: 20px;
+        }
+        
+        .alert-pill .msg {
+            font-size: 13px;
+            color: #dc2626;
+            font-weight: 600;
+        }
+        /* ── LID / STATUS ── */
+        
+        .status-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        
+        .badge {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .badge.open {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+        
+        .badge.closed {
+            background: #dcfce7;
+            color: #166534;
+        }
+        /* ── REMOVE BTN ── */
+        
+        .remove-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        /* ── EMPTY STATE ── */
+        
+        .empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+        
+        .empty .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .empty p {
+            font-size: 14px;
+        }
+        /* ── NO CARETAKER ── */
+        
+        .no-ct {
+            font-size: 13px;
+            color: #94a3b8;
+            font-style: italic;
         }
     </style>
 </head>
 
 <body>
 
-    <h1>Pharmacy Dashboard</h1>
-
-    <div class="card">
-        <h2>Pill Level</h2>
-        <div id="pillLevel" class="big">--</div>
+    <div class="header">
+        <div>
+            <h1>💊 Pharmacy Dashboard</h1>
+            <p id="ph-name">Loading…</p>
+        </div>
+        <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
 
-    <script src="app.js"></script>
+    <div class="container">
 
+        <!-- ADD DEVICE -->
+        <div class="add-card">
+            <h3>➕ Add Device by Code</h3>
+            <div class="add-row">
+                <input class="code-input" id="new-code" placeholder="e.g. A1234" maxlength="10">
+                <button class="add-btn" onclick="handleAddDevice()">Add</button>
+            </div>
+        </div>
+
+        <!-- DEVICE LIST -->
+        <div id="device-list">
+            <div class="empty">
+                <div class="icon">📦</div>
+                <p>Loading devices…</p>
+            </div>
+        </div>
+
+    </div>
     <script>
-        const code = localStorage.getItem("pillguard_code");
+        const uid = localStorage.getItem("pillguard_uid");
+        const db = firebase.firestore();
 
-        console.log("Device Code:", code);
+        let pharmacyDevices = [];
+        const listenerRefs = [];
 
-        firebase.database().ref("device/" + code).on("value", function(snapshot) {
+        // ── INIT ─────────────────────────────
+        async function init() {
+            if (!uid) {
+                window.location.href = "index.html";
+                return;
+            }
 
-            const data = snapshot.val();
+            try {
+                const doc = await db.collection("users").doc(uid).get();
+                const data = doc.data();
 
-            console.log("DATA:", data);
+                if (!data || data.role !== "Pharmacy") {
+                    alert("Access denied");
+                    window.location.href = "index.html";
+                    return;
+                }
 
-            if (!data) return;
+                document.getElementById("ph-name").textContent =
+                    data.name || "Pharmacy";
 
-            document.getElementById("pillLevel").innerText =
-                (data.pillLevel || 0) + "%";
-        });
+                // ✅ safer devices handling
+                pharmacyDevices = Array.isArray(data.devices) ? data.devices : [];
+
+                renderDevices();
+
+            } catch (error) {
+                console.error("Init error:", error);
+                alert("Failed to load pharmacy dashboard");
+            }
+        }
+
+        // ── ADD DEVICE ───────────────────────
+        async function handleAddDevice() {
+            const input = document.getElementById("new-code");
+            const code = (input.value || "").trim().toUpperCase();
+
+            if (!code) {
+                alert("Enter a device code");
+                return;
+            }
+
+            if (pharmacyDevices.includes(code)) {
+                alert("Device already added");
+                return;
+            }
+
+            try {
+                await addDevice(code);
+                pharmacyDevices.push(code);
+                input.value = "";
+                renderDevices();
+            } catch (error) {
+                console.error("Add device error:", error);
+                alert("Failed to add device");
+            }
+        }
+
+        // ── REMOVE DEVICE ────────────────────
+        async function handleRemove(code) {
+            if (!confirm(`Remove device ${code}?`)) return;
+
+            try {
+                await removeDevice(code);
+                pharmacyDevices = pharmacyDevices.filter(c => c !== code);
+                renderDevices();
+            } catch (error) {
+                console.error("Remove device error:", error);
+                alert("Failed to remove device");
+            }
+        }
+
+        // ── RENDER DEVICES ───────────────────
+        async function renderDevices() {
+            const list = document.getElementById("device-list");
+
+            // remove old listeners
+            listenerRefs.forEach(r => r.ref.off("value", r.fn));
+            listenerRefs.length = 0;
+
+            if (!pharmacyDevices.length) {
+                list.innerHTML = `
+            <div class="empty">
+                <div class="icon">📦</div>
+                <p>No devices added yet.<br>Enter a device code above to get started.</p>
+            </div>`;
+                return;
+            }
+
+            list.innerHTML = "";
+
+            for (const code of pharmacyDevices) {
+                const card = document.createElement("div");
+                card.className = "device-card";
+                card.id = `card-${code}`;
+                card.innerHTML = `
+            <div class="code-tag">${code}</div>
+            <p style="color:#94a3b8;font-size:13px">Loading…</p>
+        `;
+                list.appendChild(card);
+
+                // caretaker lookup
+                let ctName = null,
+                    ctAddress = null,
+                    ctEmail = null;
+
+                try {
+                    const ctSnap = await db.collection("users")
+                        .where("code", "==", code)
+                        .where("role", "==", "Caretaker")
+                        .limit(1)
+                        .get();
+
+                    if (!ctSnap.empty) {
+                        const ct = ctSnap.docs[0].data();
+                        ctName = ct.name || "—";
+                        ctAddress = ct.address || "—";
+                        ctEmail = ct.email || "—";
+                    }
+                } catch (error) {
+                    console.warn("Caretaker lookup failed:", error);
+                }
+
+                // live RTDB updates
+                const deviceRef = rtdb.ref(`/device/${code}`);
+                const fn = (snap) => {
+                    const d = snap.val() || {};
+                    console.log("Device update:", code, d);
+                    updateCard(code, d, ctName, ctAddress, ctEmail);
+                };
+
+                deviceRef.on("value", fn);
+                listenerRefs.push({
+                    ref: deviceRef,
+                    fn
+                });
+            }
+        }
+
+        // ── UPDATE CARD ──────────────────────
+        function updateCard(code, d, ctName, ctAddress, ctEmail) {
+            const card = document.getElementById(`card-${code}`);
+            if (!card) return;
+
+            const level = d.pillLevel !== undefined ? d.pillLevel : "—";
+
+            // ✅ FIXED safe weight
+            const weight = !isNaN(d.weight) ?
+                Number(d.weight).toFixed(1) :
+                "—";
+
+            const boxOpen = d.boxOpen !== undefined ? d.boxOpen : null;
+
+            const isLow = typeof level === "number" && level <= 20;
+
+            const fillClass = typeof level === "number" ?
+                (level <= 20 ? "danger" : level <= 40 ? "warn" : "") :
+                "";
+
+            const fillPct = typeof level === "number" ? level : 0;
+
+            const caretakerSection = ctName ?
+                `
+        <div class="info-row"><span class="label">👤 Name</span><span class="value">${ctName}</span></div>
+        <div class="info-row"><span class="label">📧 Email</span><span class="value">${ctEmail}</span></div>
+        <div class="info-row"><span class="label">📍 Address</span><span class="value">${ctAddress}</span></div>
+        ` :
+                `<p class="no-ct">No caretaker registered with this code yet.</p>`;
+
+            const alertSection = isLow ?
+                `
+        <div class="alert-pill">
+            <span class="icon">⚠️</span>
+            <span class="msg">Low pills! Level is ${level}% — time to refill.</span>
+        </div>
+        ` :
+                "";
+
+            const lidSection = boxOpen !== null ?
+                `
+        <div class="status-row">
+            <div class="badge ${boxOpen ? 'open' : 'closed'}">
+                ${boxOpen ? '🔓 Box Open' : '🔒 Box Closed'}
+            </div>
+            <div class="badge closed">⚖️ ${weight} g</div>
+        </div>
+        ` :
+                "";
+
+            card.innerHTML = `
+        <button class="remove-btn" onclick="handleRemove('${code}')">Remove</button>
+        <div class="code-tag">📦 Device: ${code}</div>
+
+        ${caretakerSection}
+
+        <div class="pill-section">
+            <div class="bar-label">
+                <span>💊 Pill Level</span>
+                <span>${level}%</span>
+            </div>
+            <div class="bar-track">
+                <div class="bar-fill ${fillClass}" style="width:${fillPct}%"></div>
+            </div>
+        </div>
+
+        ${alertSection}
+        ${lidSection}
+    `;
+        }
+
+        init();
     </script>
-
 </body>
 
 </html>
