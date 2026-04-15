@@ -416,8 +416,7 @@
         rtdb.ref("/device/" + code).on("value", function(snap) {
             const d = snap.val();
 
-            console.log("Listening path:", "/device/" + code);
-            console.log("Firebase data:", d);
+            console.log("Device Data:", d);
 
             if (!d) {
                 document.getElementById("pill-pct").textContent = "—%";
@@ -428,7 +427,6 @@
 
             updatePillUI(d);
             updateLedUI(d.leds || {});
-            updateAlarmUI(d.alarms || {});
         });
 
         // ================= PILL UI =================
@@ -507,7 +505,7 @@
             }
 
             const key = (labelInput || ("alarm_" + h + "_" + m))
-                .replace(/\s+/g, "_")
+                .replace(/[^a-zA-Z0-9_]/g, "_")
                 .toLowerCase();
 
             setAlarm(h, m, key);
