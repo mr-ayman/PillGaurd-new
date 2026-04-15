@@ -451,12 +451,12 @@
             const bar = document.getElementById("bar-fill");
             bar.style.width = level + "%";
 
-            if (level <= 20) {
-                bar.className = "bar-fill danger";
-            } else if (level <= 40) {
-                bar.className = "bar-fill warn";
+            if (d.weight !== undefined && d.weight <= 25) {
+                alertEl.style.display = "flex";
+                document.getElementById("alert-msg").textContent =
+                    "⚠️ Low pills! Weight: " + d.weight + "g";
             } else {
-                bar.className = "bar-fill";
+                alertEl.style.display = "none";
             }
 
             const lid = document.getElementById("lid-badge");

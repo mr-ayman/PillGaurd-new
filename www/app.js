@@ -42,6 +42,7 @@ async function handleSignup() {
     const name = getValue("name");
     const email = getValue("email");
     const password = getValue("pass");
+    const prescriptionEl = document.getElementById("prescription");
 
     const addressEl = document.getElementById("address");
     const codeEl = document.getElementById("code");
@@ -57,7 +58,9 @@ async function handleSignup() {
     if (role === "Caretaker") {
         address = addressEl && addressEl.value ? addressEl.value.trim() : "";
         code = codeEl && codeEl.value ? codeEl.value.trim().toUpperCase() : "";
-
+        prescription = prescriptionEl && prescriptionEl.value ?
+            prescriptionEl.value.trim() :
+            "";
         if (!address) return alert("Please enter your home address");
         if (!code) return alert("Please enter your device box code");
     }
@@ -74,6 +77,7 @@ async function handleSignup() {
         if (role === "Caretaker") {
             userData.address = address;
             userData.code = code;
+            userData.prescription = prescription;
         }
 
         if (role === "Pharmacy") {
