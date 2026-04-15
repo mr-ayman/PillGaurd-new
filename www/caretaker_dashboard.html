@@ -413,20 +413,23 @@
         document.getElementById("code-badge").textContent = "📦 " + code;
 
         // ================= LIVE DEVICE DATA =================
+        // ================= DEVICE DATA =================
         rtdb.ref("/device/" + code).on("value", function(snap) {
             const d = snap.val();
 
-            console.log("Device Data:", d);
-
-            if (!d) {
-                document.getElementById("pill-pct").textContent = "—%";
-                document.getElementById("pill-weight").textContent = "— g";
-                document.getElementById("bar-fill").style.width = "0%";
-                return;
-            }
+            if (!d) return;
 
             updatePillUI(d);
             updateLedUI(d.leds || {});
+        });
+
+        // ================= ALARM LISTENER (FIXED) =================
+        rtdb.ref("/device/" + code + "/alarms").on("value", function(snap) {
+            const alarms = snap.val() || {};
+
+            console.log("🔥 Live alarms:", alarms);
+
+            updateAlarmUI(alarms);
         });
 
         // ================= PILL UI =================
