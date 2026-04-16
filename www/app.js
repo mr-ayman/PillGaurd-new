@@ -1,3 +1,4 @@
+// app.js
 // ================= CONFIGURATION =================
 console.log("🔥 app.js loaded");
 
@@ -5,144 +6,181 @@ const firebaseConfig = {
     apiKey: "AIzaSyDizcwmj7NQgii6IW34khKdnTGn_4MNmFk",
     authDomain: "pillgaurd.firebaseapp.com",
     projectId: "pillgaurd",
-    storageBucket: "pillgaurd.firebasestorage.app",
     messagingSenderId: "359502691060",
     appId: "1:359502691060:web:a8b1ceae0524c0d5193ca1",
-    databaseURL: "https://pillgaurd-default-rtdb.asia-southeast1.firebasedatabase.app"
+    databaseURL: "https://pillgaurd-default-rtdb.asia-southeast1.firebasedatabase.app",
+    storageBucket: "pillgaurd.appspot.com"
 };
 
 // ================= INIT SAFE =================
-if (!firebase.apps || !firebase.apps.length) {
+if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
 const auth = firebase.auth();
 const firestoreDB = firebase.firestore();
 const rtdb = firebase.database();
+const storage = firebase.storage();
 
 console.log("✅ Firebase Connected");
 
-
-// ================= HELPER (IMPORTANT FIX) =================
+// ================= HELPER =================
 function getValue(id) {
     const el = document.getElementById(id);
     return el && el.value ? el.value.trim() : "";
 }
-
 
 // ================= ROLE =================
 function setRole(role) {
     localStorage.setItem("pillguard_role", role);
 }
 
+// ================= UPLOAD PRESCRIPTION IMAGE =================
+async function uploadPrescriptionImage(file, uid) {
+    try {
+        if (!file) return "";
+
+        const fileName = `${Date.now()}_${file.name}`;
+        const storageRef = storage.ref(`prescriptions/${uid}/${fileName}`);
+
+        await storageRef.put(file);
+        return await storageRef.getDownloadURL();
+    } catch (error) {
+        console.error("Prescription upload failed:", error);
+        return "";
+    }
+}
 
 // ================= SIGNUP =================
 async function handleSignup() {
-
+    const role = localStorage.getItem("pillguard_role");
     const name = getValue("name");
     const email = getValue("email");
     const password = getValue("pass");
-    const prescriptionEl = document.getElementById("prescription");
 
-    const addressEl = document.getElementById("address");
-    const codeEl = document.getElementById("code");
+    if (!role) return alert("Select role first");
+    if (!name || !email || !password) {
+        return alert("Please fill all required fields");
+    }
 
-    const role = localStorage.getItem("pillguard_role");
-
-    if (!role) return alert("No role selected. Go back and choose a role.");
-    if (!name || !email || !password) return alert("Fill all required fields");
-
-    let address = "";
-    let code = "";
-
-    if (role === "Caretaker") {
-        address = addressEl && addressEl.value ? addressEl.value.trim() : "";
-        code = codeEl && codeEl.value ? codeEl.value.trim().toUpperCase() : "";
-        prescription = prescriptionEl && prescriptionEl.value ?
-            prescriptionEl.value.trim() :
-            "";
-        if (!address) return alert("Please enter your home address");
-        if (!code) return alert("Please enter your device box code");
+    const btn = document.querySelector(".submit-btn");
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Creating account...";
     }
 
     try {
-        const userCred = await auth.createUserWithEmailAndPassword(email, password);
+        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
 
-        const userData = {
-            name: name,
-            email: email,
-            role: role
+        let userData = {
+            uid,
+            name,
+            email,
+            role
         };
 
+        // ================= CARETAKER DATA =================
         if (role === "Caretaker") {
+            const address = getValue("address");
+            const code = getValue("code");
+            const prescriptionText = getValue("prescriptionText"); // ✅ OCR text
+            const fileInput = document.getElementById("prescriptionImg");
+            const file = fileInput ? fileInput.files[0] : null;
+
             userData.address = address;
             userData.code = code;
-            userData.prescription = prescription;
+            userData.prescriptionText = prescriptionText || "";
+
+            if (file) {
+                const imageUrl = await uploadPrescriptionImage(file, uid);
+                userData.prescriptionURL = imageUrl;
+            }
         }
 
+        // ================= PHARMACY DATA =================
         if (role === "Pharmacy") {
             userData.devices = [];
         }
 
-        await firestoreDB.collection("users")
-            .doc(userCred.user.uid)
-            .set(userData);
+        await firestoreDB.collection("users").doc(uid).set(userData);
 
-        alert("Account created ✅ Please log in.");
-        window.location.href = "login.html";
+        // Save caretaker UID in RTDB
+        if (userData.code) {
+            await rtdb.ref("device/" + userData.code + "/caretaker").set(uid);
+        }
 
-    } catch (err) {
-        console.error(err);
-        alert(err.message);
+        localStorage.setItem("pillguard_uid", uid);
+        localStorage.setItem("pillguard_code", userData.code || "");
+        localStorage.setItem("pillguard_role", role);
+
+        alert("✅ Account created successfully");
+
+        window.location.href =
+            role === "Caretaker"
+                ? "caretaker_dashboard.html"
+                : "pharmacy_dashboard.html";
+
+    } catch (error) {
+        console.error("Signup error:", error);
+        alert(error.message);
+    }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Create Account";
     }
 }
-
 
 // ================= LOGIN =================
 async function handleLogin() {
-
     const email = getValue("email");
     const password = getValue("pass");
-    const role = localStorage.getItem("pillguard_role");
 
-    if (!role) return alert("Select a role first");
-    if (!email || !password) return alert("Enter email and password");
-
-    const spinner = document.getElementById("spinner");
-    if (spinner) spinner.style.display = "block";
+    if (!email || !password) {
+        return alert("Enter email and password");
+    }
 
     try {
-        const userCred = await auth.signInWithEmailAndPassword(email, password);
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
 
-        const docSnap = await firestoreDB
-            .collection("users")
-            .doc(userCred.user.uid)
-            .get();
+        const doc = await firestoreDB.collection("users").doc(uid).get();
+        const userData = doc.data();
 
-        const data = docSnap.data();
+        localStorage.setItem("pillguard_uid", uid);
+        localStorage.setItem("pillguard_code", userData.code || "");
+        localStorage.setItem("pillguard_role", userData.role || "");
 
-        if (!data) return alert("User record not found");
-        if (data.role !== role) return alert("Wrong role selected");
+        window.location.href =
+            userData.role === "Caretaker"
+                ? "caretaker_dashboard.html"
+                : "pharmacy_dashboard.html";
 
-        localStorage.setItem("pillguard_uid", userCred.user.uid);
-        localStorage.setItem("pillguard_name", data.name || "");
-
-        if (role === "Caretaker") {
-            if (!data.code) return alert("No device code assigned");
-            localStorage.setItem("pillguard_code", data.code);
-            window.location.href = "caretaker_dashboard.html";
-        } else {
-            window.location.href = "pharmacy_dashboard.html";
-        }
-
-    } catch (err) {
-        console.error(err);
-        alert(err.message);
-    } finally {
-        if (spinner) spinner.style.display = "none";
+    } catch (error) {
+        console.error("Login error:", error);
+        alert(error.message);
     }
 }
 
+// ================= UPDATE PRESCRIPTION IMAGE =================
+async function updatePrescriptionImage(file) {
+    try {
+        const uid = localStorage.getItem("pillguard_uid");
+        if (!uid || !file) return "";
+
+        const imageUrl = await uploadPrescriptionImage(file, uid);
+
+        await firestoreDB.collection("users").doc(uid).update({
+            prescriptionURL: imageUrl
+        });
+
+        return imageUrl;
+    } catch (error) {
+        console.error("Update prescription failed:", error);
+        return "";
+    }
+}
 
 // ================= LOGOUT =================
 function logout() {
@@ -151,7 +189,6 @@ function logout() {
         window.location.href = "index.html";
     });
 }
-
 
 // ================= PHARMACY: ADD DEVICE =================
 async function addDevice(code) {
@@ -163,7 +200,6 @@ async function addDevice(code) {
     });
 }
 
-
 // ================= PHARMACY: REMOVE DEVICE =================
 async function removeDevice(code) {
     const uid = localStorage.getItem("pillguard_uid");
@@ -174,7 +210,6 @@ async function removeDevice(code) {
     });
 }
 
-
 // ================= CARETAKER: SET ALARM =================
 async function setAlarm(hour, minute, label) {
     const code = localStorage.getItem("pillguard_code");
@@ -183,10 +218,9 @@ async function setAlarm(hour, minute, label) {
     await rtdb.ref(`/device/${code}/alarms/${label}`).set({
         hour: Number(hour),
         minute: Number(minute),
-        label: label
+        label
     });
 }
-
 
 // ================= CARETAKER: DELETE ALARM =================
 async function deleteAlarm(label) {
@@ -195,7 +229,6 @@ async function deleteAlarm(label) {
 
     await rtdb.ref(`/device/${code}/alarms/${label}`).remove();
 }
-
 
 // ================= CARETAKER: SET LED SLOT =================
 async function setLedSlot(slot, enabled) {

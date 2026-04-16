@@ -1,15 +1,23 @@
+<!-- signup.html -->
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PillGuard | Register</title>
+
+    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
+
+    <!-- OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <script src="app.js"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -17,20 +25,20 @@
             padding: 0;
             font-family: 'Segoe UI', sans-serif;
         }
-        
+
         body {
             padding: 30px;
             background: #fff;
             min-height: 100vh;
         }
-        
+
         h2 {
             text-align: center;
             font-size: 24px;
             color: #1e293b;
             margin-bottom: 10px;
         }
-        
+
         .role-badge {
             text-align: center;
             margin-bottom: 30px;
@@ -38,7 +46,7 @@
             color: #64748b;
             font-weight: 600;
         }
-        
+
         .role-badge span {
             background: #eff6ff;
             color: #2563eb;
@@ -46,14 +54,15 @@
             border-radius: 20px;
             font-size: 12px;
         }
-        
+
         .form-group {
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
-        
-        .auth-input {
+
+        .auth-input,
+        textarea {
             width: 100%;
             padding: 16px 20px;
             background: #f8fafc;
@@ -62,12 +71,49 @@
             font-size: 14px;
             outline: none;
         }
-        
-        .auth-input:focus {
-            border-color: #2563eb;
-            background: #fff;
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
         }
-        
+
+        .upload-box {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .upload-box input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        #preview-wrap {
+            display: none;
+            margin-top: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        #preview-wrap img {
+            width: 100%;
+            max-height: 160px;
+            object-fit: cover;
+        }
+
+        .ocr-status {
+            display: none;
+            font-size: 13px;
+            color: #2563eb;
+            font-weight: 600;
+        }
+
         .submit-btn {
             background: #2563eb;
             color: white;
@@ -78,80 +124,96 @@
             margin-top: 20px;
             cursor: pointer;
             font-size: 15px;
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
         }
-        
-        .footer-link {
-            text-align: center;
-            margin-top: 30px;
-            color: #64748b;
-            font-size: 14px;
-        }
-        
-        .footer-link a {
-            color: #2563eb;
-            font-weight: 700;
-            text-decoration: none;
-        }
-        
-        #caretaker-fields,
-        #pharmacy-fields {
+
+        #caretaker-fields {
             display: none;
+            flex-direction: column;
+            gap: 15px;
         }
     </style>
 </head>
-
 <body>
-    <div id="auth-step">
-        <h2>Register</h2>
-        <div class="role-badge" id="role-label"></div>
-        <div class="form-group">
-            <input type="text" id="name" class="auth-input" placeholder="Full Name">
-            <input type="email" id="email" class="auth-input" placeholder="Email Address">
-            <input type="password" id="pass" class="auth-input" placeholder="Password">
 
-            <!-- Caretaker-only fields -->
-            <div id="caretaker-fields">
-                <input type="text" id="address" class="auth-input" placeholder="Home Address" style="width:100%">
-                <input type="text" id="code" class="auth-input" placeholder="Box Device Code (e.g. A1234)" style="width:100%; margin-top:15px;">
-                <textarea id="prescription" class="auth-input" placeholder="Enter prescription (e.g. Paracetamol - Mon,Wed - 2 tablets)"></textarea>
+<div id="auth-step">
+    <h2>Register</h2>
+    <div class="role-badge" id="role-label"></div>
+
+    <div class="form-group">
+        <input type="text" id="name" class="auth-input" placeholder="Full Name">
+        <input type="email" id="email" class="auth-input" placeholder="Email Address">
+        <input type="password" id="pass" class="auth-input" placeholder="Password">
+
+        <div id="caretaker-fields">
+            <input type="text" id="address" class="auth-input" placeholder="Home Address">
+            <input type="text" id="code" class="auth-input" placeholder="Box Device Code (e.g. A1234)">
+
+            <!-- Prescription upload -->
+            <div>
+                <div class="upload-box">
+                    <input type="file" id="prescriptionImg" accept="image/*" onchange="processPrescription(this)">
+                    📄 Upload Prescription Image
+                </div>
+
+                <div id="preview-wrap">
+                    <img id="preview-img" src="">
+                </div>
+
+                <div class="ocr-status" id="ocr-status">🔍 Reading prescription...</div>
             </div>
 
-            <button class="submit-btn" onclick="handleSignup()">Create Account</button>
+            <!-- Extracted text -->
+            <textarea id="prescriptionText" placeholder="Extracted prescription text will appear here"></textarea>
         </div>
-        <p class="footer-link">Already have an account? <a href="login.html">Login</a></p>
+
+        <button class="submit-btn" onclick="handleSignup()">Create Account</button>
     </div>
+</div>
 
-    <script>
-        // Show/hide role-specific fields on load
-        window.addEventListener('DOMContentLoaded', () => {
-            const role = localStorage.getItem('pillguard_role') || '';
-            const label = document.getElementById('role-label');
-            label.innerHTML = `Signing up as: <span>${role}</span>`;
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+    const role = localStorage.getItem("pillguard_role") || "";
 
-            if (role === 'Caretaker') {
-                document.getElementById('caretaker-fields').style.display = 'flex';
-                document.getElementById('caretaker-fields').style.flexDirection = 'column';
-                document.getElementById('caretaker-fields').style.gap = '15px';
-            }
-        });
-        window.addEventListener("DOMContentLoaded", () => {
-            const role = localStorage.getItem("pillguard_role");
+    if (!role) {
+        alert("Select role first");
+        window.location.href = "SelectRole.html";
+        return;
+    }
 
-            if (!role) {
-                alert("Select role first");
-                window.location.href = "SelectRole.html";
-            }
-        });
-        window.addEventListener("DOMContentLoaded", () => {
-            const role = localStorage.getItem("pillguard_role");
+    document.getElementById("role-label").innerHTML =
+        `Signing up as: <span>${role}</span>`;
 
-            if (!role) {
-                alert("Select role first");
-                window.location.href = "SelectRole.html";
-            }
-        });
-    </script>
+    if (role === "Caretaker") {
+        document.getElementById("caretaker-fields").style.display = "flex";
+    }
+});
+
+async function processPrescription(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const previewWrap = document.getElementById("preview-wrap");
+    const previewImg = document.getElementById("preview-img");
+    const textArea = document.getElementById("prescriptionText");
+    const status = document.getElementById("ocr-status");
+
+    previewImg.src = URL.createObjectURL(file);
+    previewWrap.style.display = "block";
+
+    status.style.display = "block";
+    textArea.value = "";
+
+    try {
+        const result = await Tesseract.recognize(file, "eng");
+        textArea.value = result.data.text.trim();
+    } catch (error) {
+        console.error(error);
+        textArea.value = "Could not read text from image";
+    }
+
+    status.style.display = "none";
+}
+</script>
+
 </body>
-
 </html>

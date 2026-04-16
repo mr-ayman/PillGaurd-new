@@ -1,3 +1,4 @@
+<!-- pharmacy_dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,6 +10,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+    <!-- ✅ Storage SDK (needed for displaying secure image URLs) -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script src="app.js"></script>
     <style>
         * {
@@ -44,7 +47,7 @@
         }
         
         .logout-btn {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, .15);
             border: none;
             color: white;
             padding: 8px 16px;
@@ -67,7 +70,7 @@
             border-radius: 16px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
         }
         
         .add-card h3 {
@@ -113,7 +116,7 @@
             border-radius: 16px;
             padding: 20px;
             margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
             position: relative;
         }
         
@@ -145,6 +148,108 @@
             font-size: 14px;
             color: #1e293b;
             font-weight: 600;
+        }
+        /* ── PRESCRIPTION IMAGE ── */
+        
+        .rx-section {
+            margin-top: 14px;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 14px;
+        }
+        
+        .rx-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .rx-img-frame {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .rx-img-frame img {
+            width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            display: block;
+            transition: opacity .2s;
+        }
+        
+        .rx-img-frame img:hover {
+            opacity: .9;
+        }
+        
+        .rx-expand-hint {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, .45);
+            color: white;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        
+        .rx-no-image {
+            padding: 20px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+        
+        .rx-no-image .icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+        /* ── Full-screen lightbox ── */
+        
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .lightbox.open {
+            display: flex;
+        }
+        
+        .lightbox img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+        }
+        
+        .lightbox-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, .15);
+            border: none;
+            color: white;
+            font-size: 22px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         /* ── PILL LEVEL BAR ── */
         
@@ -203,7 +308,7 @@
             color: #dc2626;
             font-weight: 600;
         }
-        /* ── LID / STATUS ── */
+        /* ── STATUS ── */
         
         .status-row {
             display: flex;
@@ -260,7 +365,6 @@
         .empty p {
             font-size: 14px;
         }
-        /* ── NO CARETAKER ── */
         
         .no-ct {
             font-size: 13px;
@@ -271,6 +375,12 @@
 </head>
 
 <body>
+
+    <!-- ✅ Lightbox for full-size prescription view -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+        <img id="lightbox-img" src="" alt="Prescription">
+    </div>
 
     <div class="header">
         <div>
@@ -300,6 +410,7 @@
         </div>
 
     </div>
+
     <script>
         const uid = localStorage.getItem("pillguard_uid");
         const db = firebase.firestore();
@@ -307,7 +418,17 @@
         let pharmacyDevices = [];
         const listenerRefs = [];
 
-        // ── INIT ─────────────────────────────
+        // ── Lightbox ──
+        function openLightbox(url) {
+            document.getElementById("lightbox-img").src = url;
+            document.getElementById("lightbox").classList.add("open");
+        }
+
+        function closeLightbox() {
+            document.getElementById("lightbox").classList.remove("open");
+        }
+
+        // ── INIT ──
         async function init() {
             if (!uid) {
                 window.location.href = "index.html";
@@ -324,21 +445,17 @@
                     return;
                 }
 
-                document.getElementById("ph-name").textContent =
-                    data.name || "Pharmacy";
-
-                // ✅ safer devices handling
+                document.getElementById("ph-name").textContent = data.name || "Pharmacy";
                 pharmacyDevices = Array.isArray(data.devices) ? data.devices : [];
-
                 renderDevices();
 
-            } catch (error) {
-                console.error("Init error:", error);
+            } catch (err) {
+                console.error("Init error:", err);
                 alert("Failed to load pharmacy dashboard");
             }
         }
 
-        // ── ADD DEVICE ───────────────────────
+        // ── ADD DEVICE ──
         async function handleAddDevice() {
             const input = document.getElementById("new-code");
             const code = (input.value || "").trim().toUpperCase();
@@ -347,7 +464,6 @@
                 alert("Enter a device code");
                 return;
             }
-
             if (pharmacyDevices.includes(code)) {
                 alert("Device already added");
                 return;
@@ -358,13 +474,13 @@
                 pharmacyDevices.push(code);
                 input.value = "";
                 renderDevices();
-            } catch (error) {
-                console.error("Add device error:", error);
+            } catch (err) {
+                console.error("Add device error:", err);
                 alert("Failed to add device");
             }
         }
 
-        // ── REMOVE DEVICE ────────────────────
+        // ── REMOVE DEVICE ──
         async function handleRemove(code) {
             if (!confirm(`Remove device ${code}?`)) return;
 
@@ -372,26 +488,25 @@
                 await removeDevice(code);
                 pharmacyDevices = pharmacyDevices.filter(c => c !== code);
                 renderDevices();
-            } catch (error) {
-                console.error("Remove device error:", error);
+            } catch (err) {
+                console.error("Remove device error:", err);
                 alert("Failed to remove device");
             }
         }
 
-        // ── RENDER DEVICES ───────────────────
+        // ── RENDER DEVICES ──
         async function renderDevices() {
             const list = document.getElementById("device-list");
 
-            // remove old listeners
             listenerRefs.forEach(r => r.ref.off("value", r.fn));
             listenerRefs.length = 0;
 
             if (!pharmacyDevices.length) {
                 list.innerHTML = `
-            <div class="empty">
-                <div class="icon">📦</div>
-                <p>No devices added yet.<br>Enter a device code above to get started.</p>
-            </div>`;
+                    <div class="empty">
+                        <div class="icon">📦</div>
+                        <p>No devices added yet.<br>Enter a device code above to get started.</p>
+                    </div>`;
                 return;
             }
 
@@ -401,44 +516,27 @@
                 const card = document.createElement("div");
                 card.className = "device-card";
                 card.id = `card-${code}`;
-                card.innerHTML = `
-            <div class="code-tag">${code}</div>
-            <p style="color:#94a3b8;font-size:13px">Loading…</p>
-        `;
+                card.innerHTML = `<div class="code-tag">${code}</div><p style="color:#94a3b8;font-size:13px">Loading…</p>`;
                 list.appendChild(card);
 
-                // caretaker lookup
-                let ctName = null,
-                    ctAddress = null,
-                    ctEmail = null,
-                    ctPrescription = null;
-
+                // Caretaker lookup
+                let ctData = null;
                 try {
                     const ctSnap = await db.collection("users")
                         .where("code", "==", code)
                         .where("role", "==", "Caretaker")
-                        .limit(1)
-                        .get();
+                        .limit(1).get();
 
-                    if (!ctSnap.empty) {
-                        const ct = ctSnap.docs[0].data();
-                        ctName = ct.name || "—";
-                        ctAddress = ct.address || "—";
-                        ctEmail = ct.email || "—";
-                        ctPrescription = ct.prescription || "—";
-                    }
-                } catch (error) {
-                    console.warn("Caretaker lookup failed:", error);
+                    if (!ctSnap.empty) ctData = ctSnap.docs[0].data();
+                } catch (err) {
+                    console.warn("Caretaker lookup failed:", err);
                 }
 
-                // live RTDB updates
+                // Live RTDB updates
                 const deviceRef = rtdb.ref(`/device/${code}`);
                 const fn = (snap) => {
-                    const d = snap.val() || {};
-                    console.log("Device update:", code, d);
-                    updateCard(code, d, ctName, ctAddress, ctEmail);
+                    updateCard(code, snap.val() || {}, ctData);
                 };
-
                 deviceRef.on("value", fn);
                 listenerRefs.push({
                     ref: deviceRef,
@@ -447,80 +545,90 @@
             }
         }
 
-        // ── UPDATE CARD ──────────────────────
-        function updateCard(code, d, ctName, ctAddress, ctEmail) {
+        // ── UPDATE CARD ──
+        function updateCard(code, d, ct) {
             const card = document.getElementById(`card-${code}`);
             if (!card) return;
 
             const level = d.pillLevel !== undefined ? d.pillLevel : "—";
-
-            // ✅ FIXED safe weight
-            const weight = !isNaN(d.weight) ?
-                Number(d.weight).toFixed(1) :
-                "—";
-
+            const weight = !isNaN(d.weight) ? Number(d.weight).toFixed(1) : "—";
             const boxOpen = d.boxOpen !== undefined ? d.boxOpen : null;
-
             const isLow = d.weight !== undefined && d.weight <= 25;
-
             const fillClass = typeof level === "number" ?
                 (level <= 20 ? "danger" : level <= 40 ? "warn" : "") :
                 "";
-
             const fillPct = typeof level === "number" ? level : 0;
 
-            const caretakerSection = ctName ? `
-    <div class="info-row"><span class="label">👤 Name</span><span class="value">${ctName}</span></div>
-    <div class="info-row"><span class="label">📧 Email</span><span class="value">${ctEmail}</span></div>
-    <div class="info-row"><span class="label">📍 Address</span><span class="value">${ctAddress}</span></div>
+            // ── Caretaker info section ──
+            let caretakerSection = "";
+            if (ct) {
+                caretakerSection = `
+                    <div class="info-row"><span class="label">👤 Name</span><span class="value">${ct.name || "—"}</span></div>
+                    <div class="info-row"><span class="label">📧 Email</span><span class="value">${ct.email || "—"}</span></div>
+                    <div class="info-row"><span class="label">📍 Address</span><span class="value">${ct.address || "—"}</span></div>`;
+            } else {
+                caretakerSection = `<p class="no-ct">No caretaker registered with this code yet.</p>`;
+            }
 
-    <div style="margin-top:10px">
-        <div style="font-size:12px;color:#94a3b8">💊 Prescription</div>
-        <div style="font-size:13px;color:#1e293b;font-weight:600">
-            ${ctPrescription}
-        </div>
-    </div>
-` : `<p class="no-ct">No caretaker registered with this code yet.</p>`;
+            // ✅ Prescription image section
+            let rxSection = "";
+            if (ct) {
+                if (ct.prescriptionURL) {
+                    rxSection = `
+                        <div class="rx-section">
+                            <div class="rx-section-title">📄 Prescription</div>
+                            <div class="rx-img-frame" onclick="openLightbox('${ct.prescriptionURL}')">
+                                <img
+                                    src="${ct.prescriptionURL}"
+                                    alt="Prescription"
+                                    onerror="this.closest('.rx-img-frame').innerHTML='<div class=\\'rx-no-image\\'><div class=\\'icon\\'>⚠️</div><p>Image failed to load.</p></div>'"
+                                >
+                                <span class="rx-expand-hint">🔍 Tap to expand</span>
+                            </div>
+                        </div>`;
+                } else {
+                    rxSection = `
+                        <div class="rx-section">
+                            <div class="rx-section-title">📄 Prescription</div>
+                            <div class="rx-no-image">
+                                <div class="icon">🖼️</div>
+                                <p>No prescription uploaded by caretaker.</p>
+                            </div>
+                        </div>`;
+                }
+            }
 
             const alertSection = isLow ?
-                `
-        <div class="alert-pill">
-            <span class="icon">⚠️</span>
-            <span class="msg">Low pills! Level is ${level}% — time to refill.</span>
-        </div>
-        ` :
+                `<div class="alert-pill"><span class="icon">⚠️</span><span class="msg">Low pills! Level is ${level}% — time to refill.</span></div>` :
                 "";
 
             const lidSection = boxOpen !== null ?
-                `
-        <div class="status-row">
-            <div class="badge ${boxOpen ? 'open' : 'closed'}">
-                ${boxOpen ? '🔓 Box Open' : '🔒 Box Closed'}
-            </div>
-            <div class="badge closed">⚖️ ${weight} g</div>
-        </div>
-        ` :
+                `<div class="status-row">
+                       <div class="badge ${boxOpen ? 'open' : 'closed'}">${boxOpen ? '🔓 Box Open' : '🔒 Box Closed'}</div>
+                       <div class="badge closed">⚖️ ${weight} g</div>
+                   </div>` :
                 "";
 
             card.innerHTML = `
-        <button class="remove-btn" onclick="handleRemove('${code}')">Remove</button>
-        <div class="code-tag">📦 Device: ${code}</div>
+                <button class="remove-btn" onclick="handleRemove('${code}')">Remove</button>
+                <div class="code-tag">📦 Device: ${code}</div>
 
-        ${caretakerSection}
+                ${caretakerSection}
+                ${rxSection}
 
-        <div class="pill-section">
-            <div class="bar-label">
-                <span>💊 Pill Level</span>
-                <span>${level}%</span>
-            </div>
-            <div class="bar-track">
-                <div class="bar-fill ${fillClass}" style="width:${fillPct}%"></div>
-            </div>
-        </div>
+                <div class="pill-section">
+                    <div class="bar-label">
+                        <span>💊 Pill Level</span>
+                        <span>${level}%</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill ${fillClass}" style="width:${fillPct}%"></div>
+                    </div>
+                </div>
 
-        ${alertSection}
-        ${lidSection}
-    `;
+                ${alertSection}
+                ${lidSection}
+            `;
         }
 
         init();

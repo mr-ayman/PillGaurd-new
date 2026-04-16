@@ -1,3 +1,4 @@
+<!-- caretaker_dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,14 +6,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PillGuard | Caretaker</title>
-    <!-- Firebase SDKs FIRST -->
-    <!-- Firebase FIRST -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
-
-    <!-- THEN app.js -->
+    <!-- ✅ Storage SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-storage-compat.js"></script>
     <script src="app.js"></script>
 
     <style>
@@ -48,7 +47,7 @@
         }
         
         .logout-btn {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, .15);
             border: none;
             color: white;
             padding: 8px 16px;
@@ -69,7 +68,7 @@
             border-radius: 16px;
             padding: 20px;
             margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
         }
         
         .card h3 {
@@ -119,7 +118,7 @@
         .bar-fill.danger {
             background: #ef4444;
         }
-        /* ALERT — display controlled only via JS */
+        /* ALERT */
         
         .pill-alert {
             display: none;
@@ -172,58 +171,79 @@
             background: #eff6ff;
             color: #1d4ed8;
         }
-        /* LED SLOTS */
+        /* PRESCRIPTION CARD */
         
-        .led-grid {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        
-        .led-slot {
-            flex: 1;
-            min-width: 100px;
+        .rx-img-wrap {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 14px;
             background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 16px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .rx-img-wrap img {
+            width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .rx-placeholder {
             text-align: center;
-            cursor: pointer;
-            transition: all .2s;
-            user-select: none;
+            padding: 30px;
+            color: #94a3b8;
         }
         
-        .led-slot.active {
-            border-color: #2563eb;
-            background: #eff6ff;
-        }
-        
-        .led-slot .led-icon {
-            font-size: 28px;
+        .rx-placeholder .icon {
+            font-size: 36px;
             margin-bottom: 6px;
         }
         
-        .led-slot .led-name {
+        .rx-placeholder p {
             font-size: 13px;
-            font-weight: 700;
-            color: #1e293b;
+        }
+        /* Change prescription button */
+        
+        .change-rx-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            border: 1.5px solid #cbd5e1;
+            color: #475569;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            position: relative;
+            overflow: hidden;
         }
         
-        .led-slot .led-time {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-top: 2px;
+        .change-rx-btn:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
         }
         
-        .led-slot .led-status {
-            margin-top: 8px;
-            font-size: 11px;
-            font-weight: 700;
-            color: #94a3b8;
+        .change-rx-btn input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            font-size: 0;
         }
         
-        .led-slot.active .led-status {
+        .upload-status {
+            display: none;
+            font-size: 12px;
+            font-weight: 600;
             color: #2563eb;
+            margin-top: 8px;
         }
         /* ALARMS */
         
@@ -353,19 +373,38 @@
             </div>
         </div>
 
+        <!-- ✅ PRESCRIPTION CARD -->
+        <div class="card">
+            <h3>📄 My Prescription</h3>
+
+            <div class="rx-img-wrap" id="rx-img-wrap">
+                <div class="rx-placeholder" id="rx-placeholder">
+                    <div class="icon">🖼️</div>
+                    <p>No prescription uploaded yet.</p>
+                </div>
+                <!-- image is injected here by JS -->
+            </div>
+
+            <!-- Change prescription button — hidden file input inside -->
+            <button class="change-rx-btn" id="change-rx-btn">
+    📎 Change Prescription
+    <input type="file" accept="image/*" onchange="handleChangePrescription(this)">
+</button>
+            <div class="upload-status" id="upload-status">⏳ Uploading…</div>
+        </div>
 
         <!-- ALARMS CARD -->
         <div class="card">
             <h3>⏰ Medicine Alarms</h3>
             <div class="alarm-add">
                 <select id="alarm-hour">
-          <option value="">HH</option>
-          <script>for(let h=0;h<24;h++) document.write(`<option value="${h}">${String(h).padStart(2,'0')}</option>`);</script>
-        </select>
+                    <option value="">HH</option>
+                    <script>for(let h=0;h<24;h++) document.write(`<option value="${h}">${String(h).padStart(2,'0')}</option>`);</script>
+                </select>
                 <select id="alarm-min">
-          <option value="">MM</option>
-          <script>for(let m=0;m<60;m+=5) document.write(`<option value="${m}">${String(m).padStart(2,'0')}</option>`);</script>
-        </select>
+                    <option value="">MM</option>
+                    <script>for(let m=0;m<60;m+=5) document.write(`<option value="${m}">${String(m).padStart(2,'0')}</option>`);</script>
+                </select>
                 <input class="alarm-label-input" id="alarm-label" placeholder="Label e.g. Breakfast" type="text">
                 <button class="add-alarm-btn" onclick="handleAddAlarm()">Add</button>
             </div>
@@ -379,71 +418,105 @@
         const uid = localStorage.getItem("pillguard_uid");
         const code = localStorage.getItem("pillguard_code");
 
-        // redirect if not logged in
         if (!uid || !code) {
             window.location.href = "index.html";
         }
 
-        const db = firebase.firestore(); // keep this
-        // ❌ DON'T create rtdb again
+        const db = firebase.firestore();
 
-        const ledState = {
-            morning: false,
-            afternoon: false,
-            evening: false
-        };
+        // Check if realtime database exists
+        if (typeof rtdb === "undefined") {
+            console.error("Realtime DB not found. Check app.js");
+        }
 
-        // ================= LOAD CARETAKER NAME =================
-        db.collection("users").doc(uid).get()
-            .then(function(snap) {
-                const d = snap.data();
+        // ── Load caretaker name + prescription ──
+        db.collection("users").doc(uid).get().then(function(snap) {
+            const d = snap.data();
 
-                if (d && d.name) {
-                    document.getElementById("ct-name").textContent = "Hello, " + d.name;
-                } else {
-                    document.getElementById("ct-name").textContent = "Caretaker";
-                }
-            })
-            .catch(function(error) {
-                console.log("Name load error:", error);
+            if (d && d.name) {
+                document.getElementById("ct-name").textContent = "Hello, " + d.name;
+            } else {
                 document.getElementById("ct-name").textContent = "Caretaker";
-            });
+            }
 
-        // show device code
-        document.getElementById("code-badge").textContent = "📦 " + code;
-
-        // ================= LIVE DEVICE DATA =================
-        // ================= DEVICE DATA =================
-        rtdb.ref("/device/" + code).on("value", function(snap) {
-            const d = snap.val();
-
-            if (!d) return;
-
-            updatePillUI(d);
-            updateLedUI(d.leds || {});
+            // Load prescription image if available
+            if (d && d.prescriptionURL) {
+                renderPrescriptionImage(d.prescriptionURL);
+            }
+        }).catch(function(err) {
+            console.log("User load error:", err);
+            document.getElementById("ct-name").textContent = "Caretaker";
         });
 
-        // ================= ALARM LISTENER (FIXED) =================
+        document.getElementById("code-badge").textContent = "📦 " + code;
+
+        // ── Live device data ──
+        rtdb.ref("/device/" + code).on("value", function(snap) {
+            const d = snap.val();
+            if (!d) return;
+            updatePillUI(d);
+        });
+
+        // ── Live alarms ──
         rtdb.ref("/device/" + code + "/alarms").on("value", function(snap) {
             const alarms = snap.val() || {};
-
-            console.log("🔥 Live alarms:", alarms);
-
             updateAlarmUI(alarms);
         });
 
-        // ================= PILL UI =================
+        // ── Render prescription image ──
+        function renderPrescriptionImage(url) {
+            const wrap = document.getElementById("rx-img-wrap");
+
+            wrap.innerHTML =
+                '<img src="' + url + '" alt="Prescription" ' +
+                'onerror="this.parentElement.innerHTML=\'<div class=&quot;rx-placeholder&quot;><div class=&quot;icon&quot;>⚠️</div><p>Image failed to load.</p></div>\'">';
+        }
+
+        // ── Change prescription image ──
+        async function handleChangePrescription(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const statusEl = document.getElementById("upload-status");
+            const btn = document.getElementById("change-rx-btn");
+
+            statusEl.style.display = "block";
+            statusEl.textContent = "⏳ Uploading...";
+            btn.style.opacity = "0.5";
+
+            try {
+                const file = input.files[0];
+
+                // Must exist in app.js
+                const url = await updatePrescriptionImage(file);
+
+                if (url) {
+                    renderPrescriptionImage(url);
+                    statusEl.textContent = "✅ Prescription updated!";
+                } else {
+                    statusEl.textContent = "❌ Upload failed";
+                }
+
+            } catch (err) {
+                console.error("Upload error:", err);
+                statusEl.textContent = "❌ Upload failed";
+            }
+
+            setTimeout(function() {
+                statusEl.style.display = "none";
+            }, 3000);
+
+            btn.style.opacity = "1";
+            input.value = "";
+        }
+
+        // ── Update pill UI ──
         function updatePillUI(d) {
             const level = typeof d.pillLevel === "number" ? d.pillLevel : 0;
-
-            const weight =
-                d.weight !== undefined &&
-                d.weight !== null &&
-                !isNaN(Number(d.weight)) ?
-                Number(d.weight).toFixed(1) :
-                "—";
-
+            const weight = !isNaN(d.weight) ? Number(d.weight).toFixed(1) : "—";
             const open = !!d.boxOpen;
+
+            const alertEl = document.getElementById("pill-alert");
+            const alertMsg = document.getElementById("alert-msg");
 
             document.getElementById("pill-pct").textContent = level + "%";
             document.getElementById("pill-weight").textContent = weight + " g";
@@ -451,74 +524,51 @@
             const bar = document.getElementById("bar-fill");
             bar.style.width = level + "%";
 
-            if (d.weight !== undefined && d.weight <= 25) {
+            if (level <= 20) {
+                bar.className = "bar-fill danger";
                 alertEl.style.display = "flex";
-                document.getElementById("alert-msg").textContent =
-                    "⚠️ Low pills! Weight: " + d.weight + "g";
+                alertMsg.textContent = "⚠️ Pill level low: " + level + "%";
+            } else if (level <= 40) {
+                bar.className = "bar-fill warn";
+                alertEl.style.display = "none";
             } else {
+                bar.className = "bar-fill";
                 alertEl.style.display = "none";
             }
 
             const lid = document.getElementById("lid-badge");
             lid.textContent = open ? "🔓 Box Open" : "🔒 Box Closed";
             lid.className = "badge " + (open ? "open" : "closed");
-
-            const alertEl = document.getElementById("pill-alert");
-
-            if (level <= 20) {
-                alertEl.style.display = "flex";
-                document.getElementById("alert-msg").textContent =
-                    "⚠️ Pill level low: " + level + "%";
-            } else {
-                alertEl.style.display = "none";
-            }
         }
 
-        // ================= LED =================
-        function toggleLed(slot) {
-            ledState[slot] = !ledState[slot];
-            setLedSlot(slot, ledState[slot]);
-        }
-
-        function updateLedUI(leds) {
-            const slots = ["morning", "afternoon", "evening"];
-
-            for (let i = 0; i < slots.length; i++) {
-                const slot = slots[i];
-
-                ledState[slot] = !!leds[slot];
-
-                document.getElementById("slot-" + slot)
-                    .classList.toggle("active", ledState[slot]);
-
-                document.getElementById("led-" + slot + "-status")
-                    .textContent = ledState[slot] ? "ON 🟢" : "OFF";
-            }
-        }
-
-        // ================= ALARMS =================
+        // ── Add alarm ──
         function handleAddAlarm() {
             const h = document.getElementById("alarm-hour").value;
             const m = document.getElementById("alarm-min").value;
-            const labelInput = document.getElementById("alarm-label").value.trim();
+            const label = document.getElementById("alarm-label").value.trim();
 
             if (h === "" || m === "") {
                 alert("Select hour and minute");
                 return;
             }
 
-            const key = (labelInput || ("alarm_" + h + "_" + m))
+            const key = (label || ("alarm_" + h + "_" + m))
                 .replace(/[^a-zA-Z0-9_]/g, "_")
                 .toLowerCase();
 
+            // Must exist in app.js
             setAlarm(h, m, key);
+
             document.getElementById("alarm-label").value = "";
         }
 
+        // ── Delete alarm ──
         function handleDeleteAlarm(key) {
+            // Must exist in app.js
             deleteAlarm(key);
         }
 
+        // ── Update alarms UI ──
         function updateAlarmUI(alarms) {
             const list = document.getElementById("alarm-list");
             const keys = Object.keys(alarms);
@@ -530,10 +580,8 @@
 
             let html = "";
 
-            for (let i = 0; i < keys.length; i++) {
-                const key = keys[i];
+            keys.forEach(function(key) {
                 const a = alarms[key];
-
                 const hh = String(a.hour).padStart(2, "0");
                 const mm = String(a.minute).padStart(2, "0");
 
@@ -543,11 +591,9 @@
                     '<div class="alarm-time">' + hh + ':' + mm + '</div>' +
                     '<div class="alarm-lbl">' + (a.label || key) + '</div>' +
                     '</div>' +
-                    '<button class="del-btn" onclick="handleDeleteAlarm(\'' + key + '\')">' +
-                    'Delete' +
-                    '</button>' +
+                    '<button class="del-btn" onclick="handleDeleteAlarm(\'' + key + '\')">Delete</button>' +
                     '</div>';
-            }
+            });
 
             list.innerHTML = html;
         }
