@@ -573,31 +573,32 @@
             // ✅ Prescription image section
             let rxSection = "";
             if (ct) {
-                if (ct.prescriptionURL) {
+                if (ct.prescriptionText) {
                     rxSection = `
-                        <div class="rx-section">
-                            <div class="rx-section-title">📄 Prescription</div>
-                            <div class="rx-img-frame" onclick="openLightbox('${ct.prescriptionURL}')">
-                                <img
-                                    src="${ct.prescriptionURL}"
-                                    alt="Prescription"
-                                    onerror="this.closest('.rx-img-frame').innerHTML='<div class=\\'rx-no-image\\'><div class=\\'icon\\'>⚠️</div><p>Image failed to load.</p></div>'"
-                                >
-                                <span class="rx-expand-hint">🔍 Tap to expand</span>
-                            </div>
-                        </div>`;
+            <div class="rx-section">
+                <div class="rx-section-title">📄 Prescription</div>
+                <div style="
+                    background:#f8fafc;
+                    border:1px solid #e2e8f0;
+                    border-radius:12px;
+                    padding:12px;
+                    font-size:13px;
+                    white-space:pre-wrap;
+                ">
+                    ${ct.prescriptionText}
+                </div>
+            </div>`;
                 } else {
                     rxSection = `
-                        <div class="rx-section">
-                            <div class="rx-section-title">📄 Prescription</div>
-                            <div class="rx-no-image">
-                                <div class="icon">🖼️</div>
-                                <p>No prescription uploaded by caretaker.</p>
-                            </div>
-                        </div>`;
+            <div class="rx-section">
+                <div class="rx-section-title">📄 Prescription</div>
+                <div class="rx-no-image">
+                    <div class="icon">📝</div>
+                    <p>No prescription added.</p>
+                </div>
+            </div>`;
                 }
             }
-
             const alertSection = isLow ?
                 `<div class="alert-pill"><span class="icon">⚠️</span><span class="msg">Low pills! Level is ${level}% — time to refill.</span></div>` :
                 "";

@@ -8,8 +8,7 @@ const firebaseConfig = {
     projectId: "pillgaurd",
     messagingSenderId: "359502691060",
     appId: "1:359502691060:web:a8b1ceae0524c0d5193ca1",
-    databaseURL: "https://pillgaurd-default-rtdb.asia-southeast1.firebasedatabase.app",
-    storageBucket: "pillgaurd.appspot.com"
+    databaseURL: "https://pillgaurd-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // ================= INIT SAFE =================
@@ -20,7 +19,6 @@ if (!firebase.apps.length) {
 const auth = firebase.auth();
 const firestoreDB = firebase.firestore();
 const rtdb = firebase.database();
-const storage = firebase.storage();
 
 console.log("✅ Firebase Connected");
 
@@ -33,22 +31,6 @@ function getValue(id) {
 // ================= ROLE =================
 function setRole(role) {
     localStorage.setItem("pillguard_role", role);
-}
-
-// ================= UPLOAD PRESCRIPTION IMAGE =================
-async function uploadPrescriptionImage(file, uid) {
-    try {
-        if (!file) return "";
-
-        const fileName = `${Date.now()}_${file.name}`;
-        const storageRef = storage.ref(`prescriptions/${uid}/${fileName}`);
-
-        await storageRef.put(file);
-        return await storageRef.getDownloadURL();
-    } catch (error) {
-        console.error("Prescription upload failed:", error);
-        return "";
-    }
 }
 
 // ================= SIGNUP =================
@@ -84,18 +66,11 @@ async function handleSignup() {
         if (role === "Caretaker") {
             const address = getValue("address");
             const code = getValue("code");
-            const prescriptionText = getValue("prescriptionText"); // ✅ OCR text
-            const fileInput = document.getElementById("prescriptionImg");
-            const file = fileInput ? fileInput.files[0] : null;
+            const prescriptionText = getValue("prescriptionText");
 
             userData.address = address;
             userData.code = code;
             userData.prescriptionText = prescriptionText || "";
-
-            if (file) {
-                const imageUrl = await uploadPrescriptionImage(file, uid);
-                userData.prescriptionURL = imageUrl;
-            }
         }
 
         // ================= PHARMACY DATA =================
@@ -117,9 +92,9 @@ async function handleSignup() {
         alert("✅ Account created successfully");
 
         window.location.href =
-            role === "Caretaker"
-                ? "caretaker_dashboard.html"
-                : "pharmacy_dashboard.html";
+            role === "Caretaker" ?
+            "caretaker_dashboard.html" :
+            "pharmacy_dashboard.html";
 
     } catch (error) {
         console.error("Signup error:", error);
@@ -153,9 +128,9 @@ async function handleLogin() {
         localStorage.setItem("pillguard_role", userData.role || "");
 
         window.location.href =
-            userData.role === "Caretaker"
-                ? "caretaker_dashboard.html"
-                : "pharmacy_dashboard.html";
+            userData.role === "Caretaker" ?
+            "caretaker_dashboard.html" :
+            "pharmacy_dashboard.html";
 
     } catch (error) {
         console.error("Login error:", error);
@@ -163,25 +138,47 @@ async function handleLogin() {
     }
 }
 
-// ================= UPDATE PRESCRIPTION IMAGE =================
-async function updatePrescriptionImage(file) {
+// ================= UPDATE PRESCRIPTION TEXT =================
+async function updatePrescriptionText(newText) {
     try {
         const uid = localStorage.getItem("pillguard_uid");
-        if (!uid || !file) return "";
-
-        const imageUrl = await uploadPrescriptionImage(file, uid);
+        if (!uid) return false;
 
         await firestoreDB.collection("users").doc(uid).update({
-            prescriptionURL: imageUrl
+            prescriptionText: newText
         });
 
-        return imageUrl;
+        return true;
     } catch (error) {
         console.error("Update prescription failed:", error);
-        return "";
+        return false;
     }
 }
 
+// ================= SAVE PRESCRIPTION TEXT (UI HANDLER) =================
+async function savePrescriptionText() {
+    const textArea = document.getElementById("prescription-text");
+    const statusEl = document.getElementById("upload-status");
+
+    if (!textArea) return;
+
+    const text = textArea.value.trim();
+
+    statusEl.style.display = "block";
+    statusEl.textContent = "⏳ Saving...";
+
+    const success = await updatePrescriptionText(text);
+
+    if (success) {
+        statusEl.textContent = "✅ Saved successfully!";
+    } else {
+        statusEl.textContent = "❌ Failed to save";
+    }
+
+    setTimeout(() => {
+        statusEl.style.display = "none";
+    }, 3000);
+}
 // ================= LOGOUT =================
 function logout() {
     auth.signOut().then(() => {

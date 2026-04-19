@@ -377,20 +377,13 @@
         <div class="card">
             <h3>📄 My Prescription</h3>
 
-            <div class="rx-img-wrap" id="rx-img-wrap">
-                <div class="rx-placeholder" id="rx-placeholder">
-                    <div class="icon">🖼️</div>
-                    <p>No prescription uploaded yet.</p>
-                </div>
-                <!-- image is injected here by JS -->
-            </div>
+            <textarea id="prescription-text" placeholder="Enter medicine details, dosage, timings..." style="width:100%; min-height:150px; padding:12px; border:1px solid #cbd5e1; border-radius:12px; font-size:14px; resize:vertical;"></textarea>
 
-            <!-- Change prescription button — hidden file input inside -->
-            <button class="change-rx-btn" id="change-rx-btn">
-    📎 Change Prescription
-    <input type="file" accept="image/*" onchange="handleChangePrescription(this)">
-</button>
-            <div class="upload-status" id="upload-status">⏳ Uploading…</div>
+            <button class="add-alarm-btn" style="margin-top:12px;" onclick="savePrescriptionText()">
+        💾 Save Prescription
+    </button>
+
+            <div class="upload-status" id="upload-status">Saved</div>
         </div>
 
         <!-- ALARMS CARD -->
@@ -440,8 +433,9 @@
             }
 
             // Load prescription image if available
-            if (d && d.prescriptionURL) {
-                renderPrescriptionImage(d.prescriptionURL);
+            // Load prescription text
+            if (d && d.prescriptionText) {
+                document.getElementById("prescription-text").value = d.prescriptionText;
             }
         }).catch(function(err) {
             console.log("User load error:", err);
@@ -464,50 +458,9 @@
         });
 
         // ── Render prescription image ──
-        function renderPrescriptionImage(url) {
-            const wrap = document.getElementById("rx-img-wrap");
-
-            wrap.innerHTML =
-                '<img src="' + url + '" alt="Prescription" ' +
-                'onerror="this.parentElement.innerHTML=\'<div class=&quot;rx-placeholder&quot;><div class=&quot;icon&quot;>⚠️</div><p>Image failed to load.</p></div>\'">';
-        }
 
         // ── Change prescription image ──
-        async function handleChangePrescription(input) {
-            if (!input.files || !input.files[0]) return;
 
-            const statusEl = document.getElementById("upload-status");
-            const btn = document.getElementById("change-rx-btn");
-
-            statusEl.style.display = "block";
-            statusEl.textContent = "⏳ Uploading...";
-            btn.style.opacity = "0.5";
-
-            try {
-                const file = input.files[0];
-
-                // Must exist in app.js
-                const url = await updatePrescriptionImage(file);
-
-                if (url) {
-                    renderPrescriptionImage(url);
-                    statusEl.textContent = "✅ Prescription updated!";
-                } else {
-                    statusEl.textContent = "❌ Upload failed";
-                }
-
-            } catch (err) {
-                console.error("Upload error:", err);
-                statusEl.textContent = "❌ Upload failed";
-            }
-
-            setTimeout(function() {
-                statusEl.style.display = "none";
-            }, 3000);
-
-            btn.style.opacity = "1";
-            input.value = "";
-        }
 
         // ── Update pill UI ──
         function updatePillUI(d) {
